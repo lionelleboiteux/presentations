@@ -657,16 +657,16 @@
     return capsule;
   }
 
-  function renderTeamHeading_(team, opts) {
-    opts = opts || {};
+  function renderTeamHeading_(team) {
     var heading = el('div', { class: 'team-heading' });
     heading.appendChild(renderTeamLogo_(team.equipe));
     heading.appendChild(el('span', { class: 'team-name team-name-short', text: team.equipe }));
     heading.appendChild(el('span', { class: 'team-name team-name-full', text: TEAM_FULL_NAMES[team.equipe] || team.equipe }));
     if (team.formation) heading.appendChild(el('span', { class: 'team-formation', text: team.formation }));
-    var form = el('fc-team-form', { team: team.equipe, league: 'L1' });
-    if (opts.reversed) form.setAttribute('reversed', '');
-    heading.appendChild(form);
+    // Both rows read oldest-left/newest-right, same as the home row --
+    // mirroring the away row (newest-left) read as confusing rather than
+    // helpful, so neither uses the widget's `reversed` attribute.
+    heading.appendChild(el('fc-team-form', { team: team.equipe, league: 'L1' }));
     return heading;
   }
 
@@ -684,9 +684,9 @@
     // mobile they sit side by side in the same row (like before), on
     // desktop the headings become full-width bars above/below the pitch
     // while only the capsules move into the right-hand column.
-    var homeHeading = renderTeamHeading_(match.home, { reversed: false });
+    var homeHeading = renderTeamHeading_(match.home);
     homeHeading.classList.add('team-heading-home');
-    var awayHeading = renderTeamHeading_(match.away, { reversed: true });
+    var awayHeading = renderTeamHeading_(match.away);
     awayHeading.classList.add('team-heading-away');
     var homeCapsule = renderDnpCapsule_(dnpByTeam[match.home.equipe]);
     homeCapsule.classList.add('team-capsule-home');
