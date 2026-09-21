@@ -390,45 +390,87 @@
     'Le Mans': 'https://s3.eu-west-1.amazonaws.com/image.mpg/daabb8d9-230e-4fe2-8214-682fbbdedb5e',
     'Le Mans FC': 'https://s3.eu-west-1.amazonaws.com/image.mpg/daabb8d9-230e-4fe2-8214-682fbbdedb5e'
   };
+  // Real club colors (main jersey color + a secondary "sash" color drawn
+  // as a diagonal stripe across it, see shirtIcon below) -- hand-picked
+  // from each club's actual identity, not sourced from an API (no
+  // per-team color data exists anywhere else this project pulls from), so
+  // treat as decorative/approximate rather than official kit hex codes.
   var TEAM_COLORS = {
-    'Angers': '#111111',
-    'Auxerre': '#1c3f8f',
-    'Brest': '#dc1f26',
-    'Le Havre': '#0072ce',
-    'Lens': '#c8102e',
-    'Lille': '#d0021b',
-    'Lorient': '#ff6600',
-    'Lyon': '#002e62',
-    'Marseille': '#1a7dc4',
-    'Monaco': '#cc0000',
-    'Nice': '#1c1c1c',
-    'Paris FC': '#0033a0',
-    'Paris SG': '#04234c',
-    'Rennes': '#e2001a',
-    'Strasbourg': '#0055a4',
-    'Toulouse': '#6a0dad',
-    'Troyes': '#002868',
-    'Estac Troyes': '#002868',
-    'Le Mans': '#009fe3',
-    'Le Mans FC': '#009fe3'
+    'Angers': { main: '#000000', second: '#ffffff' },
+    'Auxerre': { main: '#ffffff', second: '#0c3c8a' },
+    'Brest': { main: '#dc1f26', second: '#ffffff' },
+    'Le Havre': { main: '#63b8ff', second: '#001489' },
+    'Lens': { main: '#dc143c', second: '#ffcc00' },
+    'Lille': { main: '#c8102e', second: '#ffffff' },
+    'Lorient': { main: '#ff6600', second: '#000000' },
+    'Lyon': { main: '#ffffff', second: '#0033a0' },
+    'Marseille': { main: '#ffffff', second: '#5fb4e5' },
+    'Monaco': { main: '#cc0000', second: '#ffffff' },
+    'Nice': { main: '#000000', second: '#e2001a' },
+    'Paris FC': { main: '#0033a0', second: '#e2001a' },
+    'Paris SG': { main: '#04234c', second: '#e30613' },
+    'Rennes': { main: '#e2001a', second: '#000000' },
+    'Strasbourg': { main: '#0055a4', second: '#ffffff' },
+    'Toulouse': { main: '#6a0dad', second: '#ffffff' },
+    'Troyes': { main: '#002868', second: '#ffffff' },
+    'Estac Troyes': { main: '#002868', second: '#ffffff' },
+    'Le Mans': { main: '#0033a0', second: '#ffffff' },
+    'Le Mans FC': { main: '#0033a0', second: '#ffffff' }
   };
-  var DEFAULT_SHIRT_COLOR = '#9ca3af';
-  var GK_SHIRT_COLOR = '#f2c40c';
+  var DEFAULT_SHIRT_COLOR = { main: '#9ca3af', second: null };
+  var GK_SHIRT_COLOR = { main: '#f2c40c', second: null };
 
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var SHIRT_PATH = 'M2,4 L8,2 L10,4 L14,4 L16,2 L22,4 L18,8 L18,22 L6,22 L6,8 Z';
+  var shirtClipCounter_ = 0;
 
-  function shirtIcon(color) {
+  // Two-tone jersey: a solid main-color fill, an optional secondary color
+  // drawn as a diagonal "/" sash (a rotated band clipped to the jersey
+  // silhouette), then a white outline redrawn on top so the silhouette
+  // still reads clearly against both colors.
+  function shirtIcon(colorPair) {
+    var pair = colorPair || DEFAULT_SHIRT_COLOR;
     var svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('class', 'player-shirt');
     svg.setAttribute('viewBox', '0 0 24 24');
-    var path = document.createElementNS(SVG_NS, 'path');
-    path.setAttribute('d', SHIRT_PATH);
-    path.setAttribute('fill', color || DEFAULT_SHIRT_COLOR);
-    path.setAttribute('stroke', '#ffffff');
-    path.setAttribute('stroke-width', '1');
-    path.setAttribute('stroke-linejoin', 'round');
-    svg.appendChild(path);
+
+    var clipId = 'shirt-clip-' + (shirtClipCounter_++);
+    var defs = document.createElementNS(SVG_NS, 'defs');
+    var clipPath = document.createElementNS(SVG_NS, 'clipPath');
+    clipPath.setAttribute('id', clipId);
+    var clipShape = document.createElementNS(SVG_NS, 'path');
+    clipShape.setAttribute('d', SHIRT_PATH);
+    clipPath.appendChild(clipShape);
+    defs.appendChild(clipPath);
+    svg.appendChild(defs);
+
+    var basePath = document.createElementNS(SVG_NS, 'path');
+    basePath.setAttribute('d', SHIRT_PATH);
+    basePath.setAttribute('fill', pair.main || DEFAULT_SHIRT_COLOR.main);
+    svg.appendChild(basePath);
+
+    if (pair.second) {
+      var sashGroup = document.createElementNS(SVG_NS, 'g');
+      sashGroup.setAttribute('clip-path', 'url(#' + clipId + ')');
+      var sash = document.createElementNS(SVG_NS, 'rect');
+      sash.setAttribute('x', '-10');
+      sash.setAttribute('y', '9');
+      sash.setAttribute('width', '44');
+      sash.setAttribute('height', '7');
+      sash.setAttribute('transform', 'rotate(-45 12 12)');
+      sash.setAttribute('fill', pair.second);
+      sashGroup.appendChild(sash);
+      svg.appendChild(sashGroup);
+    }
+
+    var outline = document.createElementNS(SVG_NS, 'path');
+    outline.setAttribute('d', SHIRT_PATH);
+    outline.setAttribute('fill', 'none');
+    outline.setAttribute('stroke', '#ffffff');
+    outline.setAttribute('stroke-width', '1');
+    outline.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(outline);
+
     return svg;
   }
 
