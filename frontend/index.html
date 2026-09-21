@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Présentations Ligue 1 | Fantasy Coach</title>
+<meta name="description" content="Vue combinée des informations Ligue 1 issues des projets DNP et compos.">
+<link rel="canonical" href="https://l1.presentations.fantasy-coach.fr/">
+<link rel="icon" type="image/png" href="https://static.wixstatic.com/media/449182_b075115d95e54908bebcaaef43561929~mv2.png/v1/fill/w_64,h_64,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/newlogo.png">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fantasy Coach">
+<meta property="og:title" content="Présentations Ligue 1 | Fantasy Coach">
+<meta property="og:description" content="Vue combinée des informations Ligue 1 issues des projets DNP et compos.">
+<meta property="og:url" content="https://l1.presentations.fantasy-coach.fr/">
+<meta property="og:image" content="https://static.wixstatic.com/media/449182_b075115d95e54908bebcaaef43561929~mv2.png/v1/fill/w_174,h_174,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/newlogo.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Présentations Ligue 1 — Fantasy Coach",
+  "url": "https://l1.presentations.fantasy-coach.fr/",
+  "description": "Vue combinée des informations Ligue 1 issues des projets DNP et compos.",
+  "inLanguage": "fr"
+}
+</script>
+<!-- Shared nav/ads/feedback/analytics components — see https://github.com/lionelleboiteux/fc-shared -->
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/nav.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/ads.js" async></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/feedback.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/ga.js" async></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/pageview.js" data-project="presentations" async></script>
+<style>
+  :root {
+    /* fantasy-coach.fr's own blue (reused from pronos/DNP/compos) so this
+       page reads as part of the same site. */
+    --fc-blue: #3d9be9;
+    --bg: #ffffff;
+    --ink: #1c1917;
+    --muted: #6b6560;
+    --border: #d6d3d1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 1rem 1rem;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  main { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0.5rem 0 1rem; }
+  .placeholder {
+    text-align: center;
+    color: var(--muted);
+    padding: 2rem 1rem;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+  }
+  .site-footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin: 2.5rem 0 1rem; }
+</style>
+</head>
+<body>
+<fc-nav current="presentations"></fc-nav>
+
+<main id="app">
+  <h1>Présentations Ligue 1</h1>
+  <div class="placeholder">
+    <p>Cette page combinera bientôt les données des projets DNP et compos.</p>
+  </div>
+
+  <fc-feedback project="presentations"></fc-feedback>
+</main>
+
+<footer class="site-footer">&copy;2026 by Fantasy Coach.</footer>
+
+<script>
+(function () {
+  // ?api_dnp=<url> / ?api_compos=<url> override the defaults for local/dev
+  // testing only; never persisted, so production use is unaffected. Same
+  // ?api= override convention as pronos.fantasy-coach.fr's,
+  // l1.dnp.fantasy-coach.fr's and l1.compos.fantasy-coach.fr's frontends,
+  // split into two params here since this page combines two data sources.
+  //
+  // Both point at the Cloudflare Worker caches (each project's worker/),
+  // never at a new backend -- this page only ever GETs, which costs
+  // nothing against the shared account's Workers KV write quota (only puts
+  // count). No display/fetch logic yet; these are just the bases the
+  // follow-up display work will read from.
+  var params = new URLSearchParams(location.search);
+  var API_BASE_DNP = params.get('api_dnp') ||
+    'https://dnp-l1-cache.fantasycoachfr.workers.dev';
+  var API_BASE_COMPOS = params.get('api_compos') ||
+    'https://compos-l1-cache.fantasycoachfr.workers.dev';
+})();
+</script>
+</body>
+</html>
