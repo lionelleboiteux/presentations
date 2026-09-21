@@ -137,10 +137,16 @@
   }
   .team-heading {
     display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    font-weight: 700;
+  }
+  .team-heading-top {
+    display: flex;
     align-items: center;
     gap: 0.5rem;
     min-width: 0;
-    font-weight: 700;
   }
   .team-logo {
     flex: none;
@@ -180,7 +186,6 @@
     padding: 0.12rem 0.45rem;
     border-radius: 999px;
   }
-  .team-heading fc-team-form { margin-left: 0.4rem; }
   /* DNP capsule: a compact link-wrapped card, simplified (icon + Lastname
      F. only) -- the full detail (blessure/suspendu/... reason, expected
      return) lives on l1.dnp.fantasy-coach.fr itself, which the capsule
@@ -428,6 +433,33 @@
     'Le Mans': 'Le Mans FC',
     'Le Mans FC': 'Le Mans FC'
   };
+  // 2-3 letter codes, shown next to the logo at mobile width (full name
+  // takes over at desktop, see .team-name-full/.team-name-short below).
+  // Mirrors pronos' teams.display_code seed data
+  // (db/migrations/20260921134500_seed_ligue1_teams_short_name.sql) by
+  // hand, same duplication pattern as TEAM_FULL_NAMES above.
+  var TEAM_CODES = {
+    'Angers': 'SCO',
+    'Auxerre': 'AJA',
+    'Brest': 'BRE',
+    'Le Havre': 'HAC',
+    'Lens': 'RCL',
+    'Lille': 'LIL',
+    'Lorient': 'FCL',
+    'Lyon': 'OL',
+    'Marseille': 'OM',
+    'Monaco': 'ASM',
+    'Nice': 'NIC',
+    'Paris FC': 'PFC',
+    'Paris SG': 'PSG',
+    'Rennes': 'REN',
+    'Strasbourg': 'RCS',
+    'Toulouse': 'TFC',
+    'Troyes': 'TRO',
+    'Estac Troyes': 'TRO',
+    'Le Mans': 'LEM',
+    'Le Mans FC': 'LEM'
+  };
   // Real club colors (main jersey color + a secondary "sash" color drawn
   // as a diagonal stripe across it, see shirtIcon below) -- hand-picked
   // from each club's actual identity, not sourced from an API (no
@@ -659,13 +691,18 @@
 
   function renderTeamHeading_(team) {
     var heading = el('div', { class: 'team-heading' });
-    heading.appendChild(renderTeamLogo_(team.equipe));
-    heading.appendChild(el('span', { class: 'team-name team-name-short', text: team.equipe }));
-    heading.appendChild(el('span', { class: 'team-name team-name-full', text: TEAM_FULL_NAMES[team.equipe] || team.equipe }));
-    if (team.formation) heading.appendChild(el('span', { class: 'team-formation', text: team.formation }));
-    // Both rows read oldest-left/newest-right, same as the home row --
-    // mirroring the away row (newest-left) read as confusing rather than
-    // helpful, so neither uses the widget's `reversed` attribute.
+    var top = el('div', { class: 'team-heading-top' });
+    top.appendChild(renderTeamLogo_(team.equipe));
+    // Code at mobile width (compact, next to the logo), full name at
+    // desktop -- see .team-name-full/.team-name-short below.
+    top.appendChild(el('span', { class: 'team-name team-name-short', text: TEAM_CODES[team.equipe] || team.equipe }));
+    top.appendChild(el('span', { class: 'team-name team-name-full', text: TEAM_FULL_NAMES[team.equipe] || team.equipe }));
+    if (team.formation) top.appendChild(el('span', { class: 'team-formation', text: team.formation }));
+    heading.appendChild(top);
+    // On its own line below name/formation -- both rows read
+    // oldest-left/newest-right, same as the home row (mirroring the away
+    // row read as confusing rather than helpful), so neither uses the
+    // widget's `reversed` attribute.
     heading.appendChild(el('fc-team-form', { team: team.equipe, league: 'L1' }));
     return heading;
   }
