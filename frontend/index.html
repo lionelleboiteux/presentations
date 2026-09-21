@@ -666,6 +666,13 @@
     return String(nom || '').trim() + (initial ? ' ' + initial + '.' : '');
   }
 
+  // Display order: injured first (most clear-cut/impactful), then
+  // suspended (equally certain), then out-of-group, personal reasons,
+  // transfer, and finally the least certain (incertain) last. "disponible"
+  // is filtered out entirely below -- this capsule is about who's
+  // unavailable, not confirming who isn't.
+  var REASON_ORDER = ['blessure', 'suspendu', 'hors_groupe', 'personnel', 'transfert', 'incertain'];
+
   function renderDnpCapsule_(joueurs) {
     var capsule = el('a', {
       class: 'dnp-capsule',
@@ -674,11 +681,21 @@
       rel: 'noopener',
       title: 'Voir le détail sur l1.dnp.fantasy-coach.fr'
     });
-    if (!joueurs || joueurs.length === 0) {
+    var sorted = (joueurs || [])
+      .filter(function (j) { return j.categorie !== 'disponible'; })
+      .slice()
+      .sort(function (a, b) {
+        var ai = REASON_ORDER.indexOf(a.categorie);
+        var bi = REASON_ORDER.indexOf(b.categorie);
+        if (ai === -1) ai = REASON_ORDER.length;
+        if (bi === -1) bi = REASON_ORDER.length;
+        return ai - bi;
+      });
+    if (sorted.length === 0) {
       capsule.appendChild(el('span', { class: 'dnp-capsule-empty', text: 'Aucun indisponible connu' }));
       return capsule;
     }
-    joueurs.forEach(function (j) {
+    sorted.forEach(function (j) {
       var categorie = REASON_ICON.hasOwnProperty(j.categorie) ? j.categorie : 'incertain';
       var row = el('div', { class: 'dnp-capsule-player' });
       var iconClass = 'dnp-capsule-icon' + (categorie === 'blessure' ? ' icon-blessure' : '');
