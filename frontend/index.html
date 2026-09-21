@@ -54,6 +54,9 @@
     line-height: 1.5;
   }
   main { max-width: 720px; margin: 0 auto; }
+  @media (min-width: 860px) {
+    main { max-width: 900px; }
+  }
   h1 { font-size: 1.4rem; margin: 0.5rem 0 1rem; }
   .intro { margin-bottom: 1.25rem; }
   .intro p { margin: 0.5rem 0; }
@@ -92,10 +95,36 @@
     background: #f5f4f2;
     border-bottom: 1px solid var(--border);
   }
+  /* Mobile (default): home header, pitch, away header stacked in that
+     order -- each team's header (crest/name/formation + DNP capsule)
+     directly above/below its own half of the pitch. Desktop (see the
+     min-width query below): the pitch moves to the left and both headers
+     move to a column on the right, each vertically aligned with its own
+     half of the pitch instead of stacked full-width. */
+  .match-body {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas: "home" "pitch" "away";
+  }
+  .team-row-home { grid-area: home; }
+  .team-row-away { grid-area: away; }
+  .match-body .pitch { grid-area: pitch; }
+  @media (min-width: 640px) {
+    .match-body {
+      grid-template-columns: 1fr minmax(200px, 260px);
+      grid-template-rows: 1fr 1fr;
+      grid-template-areas: "pitch home" "pitch away";
+    }
+    .team-row-home, .team-row-away {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .team-row-home { align-self: start; }
+    .team-row-away { align-self: end; }
+  }
   /* Each team's header (crest/name/formation on the left, DNP capsule on
-     the right) sits directly above (home) or below (away) its half of the
-     shared pitch, so the row reads as "this team, then their half of the
-     pitch" top-to-bottom -- home team's own half first, then away team's. */
+     the right on mobile; stacked on desktop, see above) sits next to its
+     half of the shared pitch. */
   .team-row {
     display: flex;
     flex-wrap: wrap;
@@ -568,12 +597,18 @@
     }).format(d);
     if (when) card.appendChild(el('div', { class: 'match-kickoff', text: when.charAt(0).toUpperCase() + when.slice(1) }));
 
-    card.appendChild(renderTeamRow_(match.home, dnpByTeam[match.home.equipe]));
+    var body = el('div', { class: 'match-body' });
+    var homeRow = renderTeamRow_(match.home, dnpByTeam[match.home.equipe]);
+    homeRow.classList.add('team-row-home');
+    var awayRow = renderTeamRow_(match.away, dnpByTeam[match.away.equipe]);
+    awayRow.classList.add('team-row-away');
     var pitch = el('div', { class: 'pitch' });
     pitch.appendChild(renderHalfPitch(match.home, 'goal-top'));
     pitch.appendChild(renderHalfPitch(match.away, 'goal-bottom'));
-    card.appendChild(pitch);
-    card.appendChild(renderTeamRow_(match.away, dnpByTeam[match.away.equipe]));
+    body.appendChild(homeRow);
+    body.appendChild(pitch);
+    body.appendChild(awayRow);
+    card.appendChild(body);
 
     return card;
   }
