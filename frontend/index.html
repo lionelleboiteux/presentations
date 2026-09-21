@@ -25,11 +25,12 @@
 }
 </script>
 <!-- Shared nav/ads/feedback/analytics components — see https://github.com/lionelleboiteux/fc-shared -->
-<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/nav.js" defer></script>
-<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/ads.js" async></script>
-<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/feedback.js" defer></script>
-<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/ga.js" async></script>
-<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@c3a1197/pageview.js" data-project="presentations" async></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@188d7e4/nav.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@188d7e4/ads.js" async></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@188d7e4/feedback.js" defer></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@188d7e4/ga.js" async></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@188d7e4/pageview.js" data-project="presentations" async></script>
+<script src="https://cdn.jsdelivr.net/gh/lionelleboiteux/fc-shared@188d7e4/team-form.js" defer></script>
 <style>
   :root {
     /* fantasy-coach.fr's own blue (reused from pronos/DNP/compos) so this
@@ -162,6 +163,14 @@
     font-weight: 700;
   }
   .team-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Full name at desktop, short/town name at mobile (unchanged from
+     before this toggle existed) -- both rendered, CSS picks which shows,
+     same breakpoint .match-body switches layout at. */
+  .team-name-full { display: none; }
+  @media (min-width: 640px) {
+    .team-name-short { display: none; }
+    .team-name-full { display: inline; }
+  }
   .team-formation {
     flex: none;
     background: #eaf3fc;
@@ -171,6 +180,7 @@
     padding: 0.12rem 0.45rem;
     border-radius: 999px;
   }
+  .team-heading fc-team-form { margin-left: 0.4rem; }
   /* DNP capsule: a compact link-wrapped card, simplified (icon + Lastname
      F. only) -- the full detail (blessure/suspendu/... reason, expected
      return) lives on l1.dnp.fantasy-coach.fr itself, which the capsule
@@ -389,6 +399,34 @@
     'Estac Troyes': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_4_33_512x512_fa84337aa111aaf34990dd2590ba1789.png',
     'Le Mans': 'https://s3.eu-west-1.amazonaws.com/image.mpg/daabb8d9-230e-4fe2-8214-682fbbdedb5e',
     'Le Mans FC': 'https://s3.eu-west-1.amazonaws.com/image.mpg/daabb8d9-230e-4fe2-8214-682fbbdedb5e'
+  };
+  // Full official names, shown at desktop width (>=640px) alongside the
+  // short/town name shown at mobile width -- see .team-name-full/.team-name-short
+  // below. Mirrors pronos' teams.short_name -> teams.name seed data
+  // (db/migrations/20260921134500_seed_ligue1_teams_short_name.sql) by
+  // hand, same duplication pattern as TEAM_LOGOS/TEAM_COLORS above rather
+  // than fetched live.
+  var TEAM_FULL_NAMES = {
+    'Angers': 'Angers SCO',
+    'Auxerre': 'AJ Auxerre',
+    'Brest': 'Stade Brestois 29',
+    'Le Havre': 'Havre Athletic Club',
+    'Lens': 'RC Lens',
+    'Lille': 'LOSC Lille',
+    'Lorient': 'FC Lorient',
+    'Lyon': 'Olympique Lyonnais',
+    'Marseille': 'Olympique de Marseille',
+    'Monaco': 'AS Monaco',
+    'Nice': 'OGC Nice',
+    'Paris FC': 'Paris FC',
+    'Paris SG': 'Paris Saint-Germain',
+    'Rennes': 'Stade Rennais FC',
+    'Strasbourg': 'RC Strasbourg Alsace',
+    'Toulouse': 'Toulouse FC',
+    'Troyes': 'Estac Troyes',
+    'Estac Troyes': 'Estac Troyes',
+    'Le Mans': 'Le Mans FC',
+    'Le Mans FC': 'Le Mans FC'
   };
   // Real club colors (main jersey color + a secondary "sash" color drawn
   // as a diagonal stripe across it, see shirtIcon below) -- hand-picked
@@ -619,11 +657,16 @@
     return capsule;
   }
 
-  function renderTeamHeading_(team) {
+  function renderTeamHeading_(team, opts) {
+    opts = opts || {};
     var heading = el('div', { class: 'team-heading' });
     heading.appendChild(renderTeamLogo_(team.equipe));
-    heading.appendChild(el('span', { class: 'team-name', text: team.equipe }));
+    heading.appendChild(el('span', { class: 'team-name team-name-short', text: team.equipe }));
+    heading.appendChild(el('span', { class: 'team-name team-name-full', text: TEAM_FULL_NAMES[team.equipe] || team.equipe }));
     if (team.formation) heading.appendChild(el('span', { class: 'team-formation', text: team.formation }));
+    var form = el('fc-team-form', { team: team.equipe, league: 'L1' });
+    if (opts.reversed) form.setAttribute('reversed', '');
+    heading.appendChild(form);
     return heading;
   }
 
@@ -641,9 +684,9 @@
     // mobile they sit side by side in the same row (like before), on
     // desktop the headings become full-width bars above/below the pitch
     // while only the capsules move into the right-hand column.
-    var homeHeading = renderTeamHeading_(match.home);
+    var homeHeading = renderTeamHeading_(match.home, { reversed: false });
     homeHeading.classList.add('team-heading-home');
-    var awayHeading = renderTeamHeading_(match.away);
+    var awayHeading = renderTeamHeading_(match.away, { reversed: true });
     awayHeading.classList.add('team-heading-away');
     var homeCapsule = renderDnpCapsule_(dnpByTeam[match.home.equipe]);
     homeCapsule.classList.add('team-capsule-home');
