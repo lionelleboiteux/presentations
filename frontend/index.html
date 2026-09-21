@@ -95,43 +95,44 @@
     background: #f5f4f2;
     border-bottom: 1px solid var(--border);
   }
-  /* Mobile (default): home header, pitch, away header stacked in that
-     order -- each team's header (crest/name/formation + DNP capsule)
-     directly above/below its own half of the pitch. Desktop (see the
-     min-width query below): the pitch moves to the left and both headers
-     move to a column on the right, each vertically aligned with its own
-     half of the pitch instead of stacked full-width. */
+  /* Mobile (default): each team's heading and its DNP capsule share a row
+     (heading left, capsule right), stacked home-row/pitch/away-row.
+     Desktop (see the min-width query below): headings become full-width
+     bars above/below the pitch; only the capsules move into a column on
+     the pitch's right, each vertically aligned with its own half. Heading
+     and capsule are separate grid items (not nested) precisely so this
+     regrouping is just a change of grid-template-areas, no DOM change. */
   .match-body {
     display: grid;
-    grid-template-columns: 1fr;
-    grid-template-areas: "home" "pitch" "away";
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "home-heading home-capsule"
+      "pitch pitch"
+      "away-heading away-capsule";
+    /* Without this, a grid item (e.g. a short heading sharing a row with a
+       long capsule list on mobile) stretches to the row's full height and
+       its content centers inside that empty space -- align each item to
+       its own natural top instead. */
+    align-items: start;
   }
-  .team-row-home { grid-area: home; }
-  .team-row-away { grid-area: away; }
+  .team-heading-home { grid-area: home-heading; }
+  .team-heading-away { grid-area: away-heading; }
+  .team-capsule-home { grid-area: home-capsule; }
+  .team-capsule-away { grid-area: away-capsule; }
   .match-body .pitch { grid-area: pitch; }
+  .team-heading-home, .team-heading-away, .team-capsule-home, .team-capsule-away {
+    padding: 0.6rem 0.75rem;
+  }
   @media (min-width: 640px) {
     .match-body {
       grid-template-columns: 1fr minmax(200px, 260px);
-      grid-template-rows: 1fr 1fr;
-      grid-template-areas: "pitch home" "pitch away";
+      grid-template-rows: auto 1fr 1fr auto;
+      grid-template-areas:
+        "home-heading home-heading"
+        "pitch home-capsule"
+        "pitch away-capsule"
+        "away-heading away-heading";
     }
-    .team-row-home, .team-row-away {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    .team-row-home { align-self: start; }
-    .team-row-away { align-self: end; }
-  }
-  /* Each team's header (crest/name/formation on the left, DNP capsule on
-     the right on mobile; stacked on desktop, see above) sits next to its
-     half of the shared pitch. */
-  .team-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.6rem;
-    padding: 0.6rem 0.75rem;
   }
   .team-heading {
     display: flex;
@@ -175,7 +176,6 @@
      return) lives on l1.dnp.fantasy-coach.fr itself, which the capsule
      links to. */
   .dnp-capsule {
-    flex: 1 1 12rem;
     display: block;
     text-decoration: none;
     color: inherit;
@@ -185,7 +185,7 @@
     background: #faf9f8;
   }
   @media (min-width: 480px) {
-    .dnp-capsule { flex: none; max-width: 11rem; }
+    .dnp-capsule { max-width: 11rem; }
   }
   .dnp-capsule:hover { border-color: var(--accent); background: #f2f8fd; }
   .dnp-capsule-empty {
@@ -577,15 +577,12 @@
     return capsule;
   }
 
-  function renderTeamRow_(team, dnpJoueurs) {
-    var row = el('div', { class: 'team-row' });
+  function renderTeamHeading_(team) {
     var heading = el('div', { class: 'team-heading' });
     heading.appendChild(renderTeamLogo_(team.equipe));
     heading.appendChild(el('span', { class: 'team-name', text: team.equipe }));
     if (team.formation) heading.appendChild(el('span', { class: 'team-formation', text: team.formation }));
-    row.appendChild(heading);
-    row.appendChild(renderDnpCapsule_(dnpJoueurs));
-    return row;
+    return heading;
   }
 
   function renderMatchCard_(match, dnpByTeam) {
@@ -597,17 +594,29 @@
     }).format(d);
     if (when) card.appendChild(el('div', { class: 'match-kickoff', text: when.charAt(0).toUpperCase() + when.slice(1) }));
 
-    var body = el('div', { class: 'match-body' });
-    var homeRow = renderTeamRow_(match.home, dnpByTeam[match.home.equipe]);
-    homeRow.classList.add('team-row-home');
-    var awayRow = renderTeamRow_(match.away, dnpByTeam[match.away.equipe]);
-    awayRow.classList.add('team-row-away');
+    // Heading (crest/name/formation) and DNP capsule are separate grid
+    // items, not nested -- see the .match-body grid areas below: on
+    // mobile they sit side by side in the same row (like before), on
+    // desktop the headings become full-width bars above/below the pitch
+    // while only the capsules move into the right-hand column.
+    var homeHeading = renderTeamHeading_(match.home);
+    homeHeading.classList.add('team-heading-home');
+    var awayHeading = renderTeamHeading_(match.away);
+    awayHeading.classList.add('team-heading-away');
+    var homeCapsule = renderDnpCapsule_(dnpByTeam[match.home.equipe]);
+    homeCapsule.classList.add('team-capsule-home');
+    var awayCapsule = renderDnpCapsule_(dnpByTeam[match.away.equipe]);
+    awayCapsule.classList.add('team-capsule-away');
     var pitch = el('div', { class: 'pitch' });
     pitch.appendChild(renderHalfPitch(match.home, 'goal-top'));
     pitch.appendChild(renderHalfPitch(match.away, 'goal-bottom'));
-    body.appendChild(homeRow);
+
+    var body = el('div', { class: 'match-body' });
+    body.appendChild(homeHeading);
+    body.appendChild(homeCapsule);
     body.appendChild(pitch);
-    body.appendChild(awayRow);
+    body.appendChild(awayCapsule);
+    body.appendChild(awayHeading);
     card.appendChild(body);
 
     return card;
