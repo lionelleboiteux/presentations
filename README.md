@@ -3,8 +3,9 @@
 A page, separate from the Wix-hosted fantasy-coach.fr, that combines
 info/data from the sibling [`DNP`](../DNP) (`l1.dnp.fantasy-coach.fr`) and
 [`compos`](../compos) (`l1.compos.fantasy-coach.fr`) projects into a single
-view. Display/merge logic is not implemented yet — this repo is currently
-just the deployment skeleton.
+view: one match per line, home team on top and away team on the bottom of
+a shared pitch diagram (probable lineup, from compos), each team's header
+paired with a simplified DNP capsule of its unavailable players.
 
 Same $0 hosting pattern as the sibling projects: a static page deployed via
 GitHub Actions to GitHub Pages, on its own subdomain of fantasy-coach.fr.
@@ -52,9 +53,30 @@ since this page combines two data sources:
 
 Neither override is persisted, so production use is unaffected.
 
-No display or merge logic exists yet — the page currently renders a
-placeholder. The `API_BASE_DNP`/`API_BASE_COMPOS` constants are wired up
-in `frontend/index.html` ready for that follow-up work.
+### How matches and capsules are built
+
+- A journée picker (same UX as compos') drives one `?journee=<n>` request
+  to compos and one `?journee=Journée <n>` request to DNP (DNP's journée
+  labels are `"Journée N"`; compos' are bare numbers — both fetched by the
+  same picker selection).
+- compos' API is per-team, not per-match: each team row carries its own
+  `fixture` (`opponent`, `isHome`, `kickoff`). `buildMatches_()` pairs two
+  teams sharing a reciprocal opponent into one match, client-side.
+- Matches are grouped by calendar day (Europe/Paris) and sorted
+  chronologically by kickoff, same grouping convention as compos' own
+  `dayGroupKey_`.
+- Each match renders as one continuous pitch: the home team's own goal at
+  the top (goalkeeper first, attack nearest the shared halfway line), the
+  away team's own goal at the bottom (mirrored) — built by reusing compos'
+  pitch-drawing logic (`parseFormationLines`, shirt icons, `TEAM_COLORS`)
+  with an added orientation flag.
+- The DNP capsule next to each team's header simplifies DNP's own row
+  format (icon + reason + expected return) down to icon + "Lastname F.",
+  covering every DNP category (blessure/suspendu/hors_groupe/personnel/
+  transfert/incertain/disponible). The whole capsule links to
+  `https://l1.dnp.fantasy-coach.fr/` — DNP's frontend has no `?journee=`
+  deep-link support today, so it lands on the homepage rather than the
+  matching journée/team.
 
 ## Shared nav/ads/footer
 
@@ -82,7 +104,8 @@ won't show a matching highlighted link until that's added there.
 
 ## Out of scope (for now)
 
-- Any merge/join/display logic — to be specified in a follow-up.
 - `fc-shared/nav.js` menu placement/label for this project.
+- Deep-linking the DNP capsule to a specific journée/team (would need
+  `?journee=`/`?equipe=` support added to DNP's own frontend).
 - Supabase — only revisit if real relational joins across DNP/compos data
   are needed later.

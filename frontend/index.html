@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Présentations Ligue 1 | Fantasy Coach</title>
-<meta name="description" content="Vue combinée des informations Ligue 1 issues des projets DNP et compos.">
+<meta name="description" content="Choisissez une journée pour voir, match par match, les compositions probables et les indisponibles de chaque équipe.">
 <link rel="canonical" href="https://l1.presentations.fantasy-coach.fr/">
 <link rel="icon" type="image/png" href="https://static.wixstatic.com/media/449182_b075115d95e54908bebcaaef43561929~mv2.png/v1/fill/w_64,h_64,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/newlogo.png">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Fantasy Coach">
 <meta property="og:title" content="Présentations Ligue 1 | Fantasy Coach">
-<meta property="og:description" content="Vue combinée des informations Ligue 1 issues des projets DNP et compos.">
+<meta property="og:description" content="Choisissez une journée pour voir, match par match, les compositions probables et les indisponibles de chaque équipe.">
 <meta property="og:url" content="https://l1.presentations.fantasy-coach.fr/">
 <meta property="og:image" content="https://static.wixstatic.com/media/449182_b075115d95e54908bebcaaef43561929~mv2.png/v1/fill/w_174,h_174,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/newlogo.png">
 <script type="application/ld+json">
@@ -20,7 +20,7 @@
   "@type": "WebSite",
   "name": "Présentations Ligue 1 — Fantasy Coach",
   "url": "https://l1.presentations.fantasy-coach.fr/",
-  "description": "Vue combinée des informations Ligue 1 issues des projets DNP et compos.",
+  "description": "Compositions probables et indisponibles de Ligue 1, match par match, journée par journée.",
   "inLanguage": "fr"
 }
 </script>
@@ -36,9 +36,13 @@
        page reads as part of the same site. */
     --fc-blue: #3d9be9;
     --bg: #ffffff;
+    --card: #ffffff;
     --ink: #1c1917;
     --muted: #6b6560;
     --border: #d6d3d1;
+    --accent: var(--fc-blue);
+    --pitch-top: #4caf62;
+    --pitch-bottom: #2e7d3f;
   }
   * { box-sizing: border-box; }
   body {
@@ -49,16 +53,212 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     line-height: 1.5;
   }
-  main { max-width: 960px; margin: 0 auto; }
+  main { max-width: 720px; margin: 0 auto; }
   h1 { font-size: 1.4rem; margin: 0.5rem 0 1rem; }
-  .placeholder {
+  .intro { margin-bottom: 1.25rem; }
+  .intro p { margin: 0.5rem 0; }
+  .journee-picker { margin-bottom: 1.5rem; }
+  .journee-picker label { display: block; font-weight: 600; margin-bottom: 0.4rem; }
+  .journee-picker select {
+    font-size: 1rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--ink);
+  }
+  .last-updated { margin: 0 0 1.25rem; color: var(--muted); font-size: 0.9rem; }
+  .status-line { color: var(--muted); }
+  .day-section + .day-section { margin-top: 2rem; }
+  .day-heading {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 0.85rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .match-list { display: flex; flex-direction: column; gap: 1.5rem; }
+  .match-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--card);
+  }
+  .match-kickoff {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding: 0.4rem 0.5rem;
+    background: #f5f4f2;
+    border-bottom: 1px solid var(--border);
+  }
+  /* Each team's header (crest/name/formation on the left, DNP capsule on
+     the right) sits directly above (home) or below (away) its half of the
+     shared pitch, so the row reads as "this team, then their half of the
+     pitch" top-to-bottom -- home team's own half first, then away team's. */
+  .team-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .team-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    font-weight: 700;
+  }
+  .team-logo {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: contain;
+  }
+  .team-logo-fallback {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+  .team-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .team-formation {
+    flex: none;
+    background: #eaf3fc;
+    color: var(--fc-blue);
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+  }
+  /* DNP capsule: a compact link-wrapped card, simplified (icon + Lastname
+     F. only) -- the full detail (blessure/suspendu/... reason, expected
+     return) lives on l1.dnp.fantasy-coach.fr itself, which the capsule
+     links to. */
+  .dnp-capsule {
+    flex: 1 1 12rem;
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.35rem 0.55rem;
+    background: #faf9f8;
+  }
+  @media (min-width: 480px) {
+    .dnp-capsule { flex: none; max-width: 11rem; }
+  }
+  .dnp-capsule:hover { border-color: var(--accent); background: #f2f8fd; }
+  .dnp-capsule-empty {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .dnp-capsule-player {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dnp-capsule-icon { flex: none; font-size: 0.8rem; line-height: 1; }
+  /* Plain "+" styled in CSS, not an emoji, for the "blessure" icon -- same
+     as l1.dnp.fantasy-coach.fr's frontend, so color-scheme inversion (which
+     doesn't apply to color-emoji glyphs) still turns it red. */
+  .dnp-capsule-icon.icon-blessure { color: #dc2626; font-weight: 800; font-size: 1rem; }
+  /* Pitch: home team's own goal at the very top, away team's own goal at
+     the very bottom, both attacking toward the shared halfway line/center
+     circle in the middle -- one continuous strip, not two separate mini
+     pitches. */
+  .pitch {
+    position: relative;
+    background: linear-gradient(180deg, var(--pitch-top) 0%, var(--pitch-bottom) 100%);
+    padding: 0.85rem 0.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 520px;
+    overflow: hidden;
+  }
+  .pitch::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 6%;
+    right: 6%;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.45);
+  }
+  .pitch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 64px;
+    height: 64px;
+    border: 2px solid rgba(255, 255, 255, 0.45);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .pitch-half {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .pitch-line {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: clamp(0.3rem, 3vw, 1.1rem);
+  }
+  .player-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    flex: 0 1 auto;
+    min-width: 3.4rem;
+  }
+  .player-shirt-wrap { position: relative; width: 1.9rem; height: 1.9rem; flex: none; }
+  .player-shirt {
+    width: 1.9rem;
+    height: 1.9rem;
+    flex: none;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+  }
+  .player-label {
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
+  }
+  .empty-state, .error-state {
     text-align: center;
     color: var(--muted);
     padding: 2rem 1rem;
     border: 1px dashed var(--border);
     border-radius: 12px;
   }
-  .site-footer { text-align: center; font-size: 0.8rem; color: var(--muted); margin: 2.5rem 0 1rem; }
+  .error-state { color: #b91c1c; }
 </style>
 </head>
 <body>
@@ -66,9 +266,20 @@
 
 <main id="app">
   <h1>Présentations Ligue 1</h1>
-  <div class="placeholder">
-    <p>Cette page combinera bientôt les données des projets DNP et compos.</p>
+  <div class="intro">
+    <p>Choisissez une journée pour voir, match par match, les compositions probables et les indisponibles de chaque équipe (données <a href="https://l1.compos.fantasy-coach.fr/">compos</a> et <a href="https://l1.dnp.fantasy-coach.fr/">DNP</a>).</p>
   </div>
+
+  <div class="journee-picker">
+    <label for="journee-select">Journée</label>
+    <select id="journee-select" disabled>
+      <option>Chargement…</option>
+    </select>
+  </div>
+
+  <p id="status-line" class="status-line"></p>
+  <div id="match-list" class="match-list"></div>
+  <noscript><p>Activez JavaScript pour afficher les matchs.</p></noscript>
 
   <fc-feedback project="presentations"></fc-feedback>
 </main>
@@ -86,13 +297,464 @@
   // Both point at the Cloudflare Worker caches (each project's worker/),
   // never at a new backend -- this page only ever GETs, which costs
   // nothing against the shared account's Workers KV write quota (only puts
-  // count). No display/fetch logic yet; these are just the bases the
-  // follow-up display work will read from.
+  // count).
   var params = new URLSearchParams(location.search);
-  var API_BASE_DNP = params.get('api_dnp') ||
-    'https://dnp-l1-cache.fantasycoachfr.workers.dev';
   var API_BASE_COMPOS = params.get('api_compos') ||
     'https://compos-l1-cache.fantasycoachfr.workers.dev';
+  var API_BASE_DNP = params.get('api_dnp') ||
+    'https://dnp-l1-cache.fantasycoachfr.workers.dev';
+  var DNP_SITE_URL = 'https://l1.dnp.fantasy-coach.fr/';
+
+  var select = document.getElementById('journee-select');
+  var statusLine = document.getElementById('status-line');
+  var matchList = document.getElementById('match-list');
+
+  function el(tag, attrs, children) {
+    var e = document.createElement(tag);
+    for (var k in (attrs || {})) {
+      if (k === 'text') e.textContent = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach(function (c) { e.appendChild(c); });
+    return e;
+  }
+
+  function setStatus(text) {
+    statusLine.textContent = text || '';
+  }
+
+  // Both the Apps Script-backed Worker origins can hit a cold Apps Script
+  // container on cache miss (10-40s or a non-JSON error page) -- same
+  // tolerance as compos'/DNP's own frontends.
+  function fetchJson_(url, attemptsLeft, delayMs) {
+    return fetch(url)
+      .then(function (r) { return r.json(); })
+      .catch(function (err) {
+        if (attemptsLeft <= 1) throw err;
+        return new Promise(function (resolve) { setTimeout(resolve, delayMs); })
+          .then(function () { return fetchJson_(url, attemptsLeft - 1, delayMs * 2); });
+      });
+  }
+
+  // Copied verbatim from l1.dnp.fantasy-coach.fr's / l1.compos.fantasy-coach.fr's
+  // frontends -- see those for the sourcing note (pronos Supabase `teams`
+  // table, hand-matched against these sheets' Équipe values).
+  var TEAM_LOGOS = {
+    'Angers': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_4_37_512x512_b5149d8c4312c158b2975298205510eb.png',
+    'Auxerre': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_4_2_512x512_4bed22ddd777a8b0977284bee7f416a7.png',
+    'Brest': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_44_512x512_b8930455bc938de7b9f4e128e1036989.png',
+    'Le Havre': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_5_512x512_e9bf970697e022dcbd3d51e245f3682d.png',
+    'Lens': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2026_1_6_512x512_d08b45acce8a87d13b938cde8974362f.png',
+    'Lille': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_158_512x512_39a605746d9cf4eb12d9cd4f63adb27c.png',
+    'Lorient': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_7_512x512_7d0c497c5f41d0dcf5dabad2910699e3.png',
+    'Lyon': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_159_512x512_1a9c2cd8f58fba433bb5cd568b3de7d0.png',
+    'Marseille': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2025_1_1_512x512_16ca4f08072a6b6d99169ba2b6a8b228.png',
+    'Monaco': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_9_512x512_ad7dd146950eee8eb68ea9588a674fe8.png',
+    'Nice': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_30_512x512_2ccb89a2f1fbad23e693d1c5d101a25d.png',
+    'Paris FC': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_4_90_512x512_8b2bb52cf67eb9456c794509c7e58c46.png',
+    'Paris SG': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_13_512x512_4a9438034a011c1368c52d097a93b98f.png',
+    'Rennes': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_14_512x512_28c7492293ca34c6e26d6cb71e858a57.png',
+    'Strasbourg': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_15_512x512_e9553990e86d8098a3cf94febe8b4b96.png',
+    'Toulouse': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_1_16_512x512_a7be4e575396227614acc0ed47083503.png',
+    'Troyes': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_4_33_512x512_fa84337aa111aaf34990dd2590ba1789.png',
+    'Estac Troyes': 'https://s3.eu-west-1.amazonaws.com/image.mpg/assets/clubs/logo/2023_4_33_512x512_fa84337aa111aaf34990dd2590ba1789.png',
+    'Le Mans': 'https://s3.eu-west-1.amazonaws.com/image.mpg/daabb8d9-230e-4fe2-8214-682fbbdedb5e',
+    'Le Mans FC': 'https://s3.eu-west-1.amazonaws.com/image.mpg/daabb8d9-230e-4fe2-8214-682fbbdedb5e'
+  };
+  var TEAM_COLORS = {
+    'Angers': '#111111',
+    'Auxerre': '#1c3f8f',
+    'Brest': '#dc1f26',
+    'Le Havre': '#0072ce',
+    'Lens': '#c8102e',
+    'Lille': '#d0021b',
+    'Lorient': '#ff6600',
+    'Lyon': '#002e62',
+    'Marseille': '#1a7dc4',
+    'Monaco': '#cc0000',
+    'Nice': '#1c1c1c',
+    'Paris FC': '#0033a0',
+    'Paris SG': '#04234c',
+    'Rennes': '#e2001a',
+    'Strasbourg': '#0055a4',
+    'Toulouse': '#6a0dad',
+    'Troyes': '#002868',
+    'Estac Troyes': '#002868',
+    'Le Mans': '#009fe3',
+    'Le Mans FC': '#009fe3'
+  };
+  var DEFAULT_SHIRT_COLOR = '#9ca3af';
+  var GK_SHIRT_COLOR = '#f2c40c';
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var SHIRT_PATH = 'M2,4 L8,2 L10,4 L14,4 L16,2 L22,4 L18,8 L18,22 L6,22 L6,8 Z';
+
+  function shirtIcon(color) {
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('class', 'player-shirt');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    var path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', SHIRT_PATH);
+    path.setAttribute('fill', color || DEFAULT_SHIRT_COLOR);
+    path.setAttribute('stroke', '#ffffff');
+    path.setAttribute('stroke-width', '1');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function teamInitials(equipe) {
+    return String(equipe || '?')
+      .split(/\s+/)
+      .map(function (w) { return w[0]; })
+      .join('')
+      .slice(0, 3)
+      .toUpperCase();
+  }
+
+  // "4-3-3" -> [4, 3, 3]. Returns null if any part isn't a positive
+  // integer, so the caller can fall back to a single undifferentiated line.
+  function parseFormationLines(formation) {
+    var parts = String(formation || '').split('-').map(function (p) { return parseInt(p, 10); });
+    if (parts.length === 0 || parts.some(function (n) { return !n || n <= 0; })) return null;
+    return parts;
+  }
+
+  function parsePlayerName(rawName) {
+    return String(rawName || '').replace(/\(([^)]*)\)/g, function (match, inner) {
+      var trimmed = inner.trim();
+      if (/^[pc]$/i.test(trimmed)) return '';
+      return match;
+    }).replace(/\s+/g, ' ').trim();
+  }
+
+  function renderLine(names, color) {
+    var line = el('div', { class: 'pitch-line' });
+    // Sheet order within a line is entered right-to-left, but DOM/flexbox
+    // order renders left-to-right, so reverse to match -- same convention
+    // as l1.compos.fantasy-coach.fr's frontend.
+    names.slice().reverse().forEach(function (name) {
+      var chip = el('div', { class: 'player-chip' });
+      var shirtWrap = el('div', { class: 'player-shirt-wrap' });
+      shirtWrap.appendChild(shirtIcon(color));
+      chip.appendChild(shirtWrap);
+      chip.appendChild(el('span', { class: 'player-label', text: parsePlayerName(name) }));
+      line.appendChild(chip);
+    });
+    return line;
+  }
+
+  // orientation 'goal-top' (home team: own goal at the top of the pitch,
+  // attacking downward toward the shared center) or 'goal-bottom' (away
+  // team: own goal at the bottom, attacking upward toward the center --
+  // the ordinary single-team orientation used by l1.compos.fantasy-coach.fr).
+  function renderHalfPitch(team, orientation) {
+    var half = el('div', { class: 'pitch-half' });
+    var joueurs = (team && team.joueurs) || [];
+    var gk = joueurs[0];
+    var outfield = joueurs.slice(1);
+    var lines = parseFormationLines(team && team.formation);
+    var sum = lines ? lines.reduce(function (a, b) { return a + b; }, 0) : 0;
+    var color = TEAM_COLORS[team && team.equipe] || DEFAULT_SHIRT_COLOR;
+
+    var groups = null;
+    if (lines && sum === outfield.length) {
+      var idx = 0;
+      groups = lines.map(function (n) {
+        var g = outfield.slice(idx, idx + n);
+        idx += n;
+        return g;
+      });
+    }
+
+    var gkLine = renderLine(gk ? [gk] : [], GK_SHIRT_COLOR);
+    if (orientation === 'goal-top') {
+      half.appendChild(gkLine);
+      if (groups) {
+        groups.forEach(function (g) { half.appendChild(renderLine(g, color)); });
+      } else if (outfield.length) {
+        half.appendChild(renderLine(outfield, color));
+      }
+    } else {
+      if (groups) {
+        groups.slice().reverse().forEach(function (g) { half.appendChild(renderLine(g, color)); });
+      } else if (outfield.length) {
+        half.appendChild(renderLine(outfield, color));
+      }
+      half.appendChild(gkLine);
+    }
+    return half;
+  }
+
+  function renderTeamLogo_(equipe) {
+    var logoUrl = TEAM_LOGOS[equipe];
+    if (logoUrl) {
+      var logo = el('img', { class: 'team-logo', src: logoUrl, alt: equipe });
+      logo.addEventListener('error', function () {
+        this.replaceWith(el('span', { class: 'team-logo-fallback', text: teamInitials(equipe) }));
+      });
+      return logo;
+    }
+    return el('span', { class: 'team-logo-fallback', text: teamInitials(equipe) });
+  }
+
+  var REASON_ICON = {
+    disponible: '✅',
+    suspendu: '🟥',
+    blessure: '+',
+    personnel: '🤝',
+    hors_groupe: '🙅',
+    transfert: '✈️',
+    incertain: '❓'
+  };
+  var REASON_LABEL = {
+    disponible: 'Disponible',
+    suspendu: 'Suspendu',
+    blessure: 'Blessé',
+    personnel: 'Raison personnelle',
+    hors_groupe: 'Hors groupe',
+    transfert: 'Transfert',
+    incertain: 'Incertain'
+  };
+
+  // Simplified vs. l1.dnp.fantasy-coach.fr's own row (no poste/raison/retour
+  // columns) -- icon + "Lastname F." only, full detail lives on the DNP
+  // page itself, which the whole capsule links to.
+  function formatPlayerName_(prenom, nom) {
+    var initial = String(prenom || '').trim().charAt(0);
+    return String(nom || '').trim() + (initial ? ' ' + initial + '.' : '');
+  }
+
+  function renderDnpCapsule_(joueurs) {
+    var capsule = el('a', {
+      class: 'dnp-capsule',
+      href: DNP_SITE_URL,
+      target: '_blank',
+      rel: 'noopener',
+      title: 'Voir le détail sur l1.dnp.fantasy-coach.fr'
+    });
+    if (!joueurs || joueurs.length === 0) {
+      capsule.appendChild(el('span', { class: 'dnp-capsule-empty', text: 'Aucun indisponible connu' }));
+      return capsule;
+    }
+    joueurs.forEach(function (j) {
+      var categorie = REASON_ICON.hasOwnProperty(j.categorie) ? j.categorie : 'incertain';
+      var row = el('div', { class: 'dnp-capsule-player' });
+      var iconClass = 'dnp-capsule-icon' + (categorie === 'blessure' ? ' icon-blessure' : '');
+      row.appendChild(el('span', { class: iconClass, title: REASON_LABEL[categorie], text: REASON_ICON[categorie] }));
+      row.appendChild(el('span', { text: formatPlayerName_(j.prenom, j.nom) }));
+      capsule.appendChild(row);
+    });
+    return capsule;
+  }
+
+  function renderTeamRow_(team, dnpJoueurs) {
+    var row = el('div', { class: 'team-row' });
+    var heading = el('div', { class: 'team-heading' });
+    heading.appendChild(renderTeamLogo_(team.equipe));
+    heading.appendChild(el('span', { class: 'team-name', text: team.equipe }));
+    if (team.formation) heading.appendChild(el('span', { class: 'team-formation', text: team.formation }));
+    row.appendChild(heading);
+    row.appendChild(renderDnpCapsule_(dnpJoueurs));
+    return row;
+  }
+
+  function renderMatchCard_(match, dnpByTeam) {
+    var card = el('div', { class: 'match-card' });
+
+    var d = new Date(match.kickoff);
+    var when = isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris'
+    }).format(d);
+    if (when) card.appendChild(el('div', { class: 'match-kickoff', text: when.charAt(0).toUpperCase() + when.slice(1) }));
+
+    card.appendChild(renderTeamRow_(match.home, dnpByTeam[match.home.equipe]));
+    var pitch = el('div', { class: 'pitch' });
+    pitch.appendChild(renderHalfPitch(match.home, 'goal-top'));
+    pitch.appendChild(renderHalfPitch(match.away, 'goal-bottom'));
+    card.appendChild(pitch);
+    card.appendChild(renderTeamRow_(match.away, dnpByTeam[match.away.equipe]));
+
+    return card;
+  }
+
+  // Pairs compos' per-team rows (each carrying its own fixture: opponent +
+  // isHome + kickoff) into one match per home/away pair -- compos' API is
+  // per-team, not per-match, so this is done client-side rather than
+  // relying on either Worker to already group them.
+  function buildMatches_(teams) {
+    var byName = {};
+    (teams || []).forEach(function (t) { byName[t.equipe] = t; });
+    var seen = {};
+    var matches = [];
+    (teams || []).forEach(function (t) {
+      if (seen[t.equipe] || !t.fixture) return;
+      var opponent = byName[t.fixture.opponent];
+      seen[t.equipe] = true;
+      if (opponent) seen[opponent.equipe] = true;
+      var home = t.fixture.isHome ? t : opponent;
+      var away = t.fixture.isHome ? opponent : t;
+      if (!home || !away) return; // opponent's own row missing from this journée's data
+      matches.push({ home: home, away: away, kickoff: t.fixture.kickoff });
+    });
+    matches.sort(function (a, b) { return new Date(a.kickoff) - new Date(b.kickoff); });
+    return matches;
+  }
+
+  // "Journée N" -> "Matchs du vendredi 5 septembre", grouped by Paris
+  // calendar day and ordered chronologically -- same convention as
+  // l1.compos.fantasy-coach.fr's dayGroupKey_.
+  function dayGroupKey_(kickoffIso) {
+    var d = new Date(kickoffIso);
+    if (isNaN(d.getTime())) return null;
+    var parts = {};
+    new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Europe/Paris', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+    }).formatToParts(d).forEach(function (p) { parts[p.type] = p.value; });
+    if (!parts.year || !parts.month || !parts.day || !parts.weekday) return null;
+    return {
+      key: parts.year + '-' + parts.month + '-' + parts.day,
+      label: 'Matchs du ' + parts.weekday.charAt(0).toUpperCase() + parts.weekday.slice(1) +
+        ' ' + parts.day + ' ' + parts.month,
+      date: d
+    };
+  }
+
+  function groupMatchesByDay_(matches) {
+    var byKey = {};
+    var undated = [];
+    matches.forEach(function (m) {
+      var group = dayGroupKey_(m.kickoff);
+      if (!group) { undated.push(m); return; }
+      if (!byKey[group.key]) byKey[group.key] = { label: group.label, date: group.date, matches: [] };
+      byKey[group.key].matches.push(m);
+    });
+    var days = Object.keys(byKey).map(function (k) { return byKey[k]; })
+      .sort(function (a, b) { return a.date - b.date; });
+    return { days: days, undated: undated };
+  }
+
+  function renderMatches_(matches, dnpByTeam) {
+    matchList.innerHTML = '';
+    if (!matches || matches.length === 0) {
+      matchList.appendChild(el('div', { class: 'empty-state', text: 'Aucun match trouvé pour cette journée.' }));
+      return;
+    }
+    var grouped = groupMatchesByDay_(matches);
+
+    if (grouped.days.length === 0) {
+      var flat = el('div', { class: 'match-list' });
+      matches.forEach(function (m) { flat.appendChild(renderMatchCard_(m, dnpByTeam)); });
+      matchList.appendChild(flat);
+      return;
+    }
+
+    grouped.days.forEach(function (day) {
+      var section = el('section', { class: 'day-section' });
+      section.appendChild(el('h2', { class: 'day-heading', text: day.label }));
+      var list = el('div', { class: 'match-list' });
+      day.matches.forEach(function (m) { list.appendChild(renderMatchCard_(m, dnpByTeam)); });
+      section.appendChild(list);
+      matchList.appendChild(section);
+    });
+
+    if (grouped.undated.length) {
+      var section2 = el('section', { class: 'day-section' });
+      section2.appendChild(el('h2', { class: 'day-heading', text: 'Autres rencontres' }));
+      var list2 = el('div', { class: 'match-list' });
+      grouped.undated.forEach(function (m) { list2.appendChild(renderMatchCard_(m, dnpByTeam)); });
+      section2.appendChild(list2);
+      matchList.appendChild(section2);
+    }
+  }
+
+  // compos' journée labels are bare numbers ("1", "2", ...); DNP's are
+  // "Journée N". Both fetched by the same selected number, so this page's
+  // own picker options carry the bare number and this maps to DNP's shape.
+  function dnpJourneeLabel_(number) {
+    return 'Journée ' + number;
+  }
+
+  function loadJournee(journeeNumber) {
+    setStatus('Chargement…');
+    matchList.innerHTML = '';
+    Promise.all([
+      fetchJson_(API_BASE_COMPOS + '?journee=' + encodeURIComponent(journeeNumber), 3, 2000),
+      fetchJson_(API_BASE_DNP + '?journee=' + encodeURIComponent(dnpJourneeLabel_(journeeNumber)), 3, 2000)
+        .catch(function () { return { equipes: [] }; }) // DNP has nothing for this journée yet -- capsules just show "Aucun indisponible connu"
+    ])
+      .then(function (results) {
+        var composData = results[0];
+        var dnpData = results[1];
+        if (composData && composData.error) throw new Error(composData.error);
+        setStatus('');
+
+        var dnpByTeam = {};
+        (dnpData && dnpData.equipes || []).forEach(function (t) { dnpByTeam[t.equipe] = t.joueurs || []; });
+
+        var matches = buildMatches_(composData.equipes);
+        renderMatches_(matches, dnpByTeam);
+      })
+      .catch(function (err) {
+        setStatus('');
+        matchList.appendChild(el('div', { class: 'error-state', text: 'Impossible de charger les données (' + err.message + ').' }));
+      });
+  }
+
+  // jeu-des-pronos already tracks which Ligue 1 gameweek is current -- same
+  // approach as l1.compos.fantasy-coach.fr's frontend, reused so this page
+  // defaults to the same journée that one does.
+  var PRONOS_API_BASE = 'https://dmytkubjxwwwkroutvdu.supabase.co/functions/v1/api';
+  var PRONOS_L1_LEAGUE_ID = '27f27a15-02a9-448a-98d5-80998e2fa52e';
+
+  function fetchCurrentGameweekNumber() {
+    return fetch(PRONOS_API_BASE + '/v1/leagues/' + PRONOS_L1_LEAGUE_ID + '/current')
+      .then(function (r) { return r.json(); })
+      .then(function (data) { return data && data.gameweek ? data.gameweek.number : null; })
+      .catch(function () { return null; });
+  }
+
+  Promise.all([
+    fetchJson_(API_BASE_COMPOS + '?meta=1', 3, 2000),
+    fetchCurrentGameweekNumber()
+  ])
+    .then(function (results) {
+      var journees = results[0];
+      var currentNumber = results[1];
+      select.innerHTML = '';
+      journees.forEach(function (j) {
+        select.appendChild(el('option', { value: j, text: 'Journée ' + j }));
+      });
+      select.disabled = false;
+      select.addEventListener('change', function () { loadJournee(select.value); });
+
+      var numberedJournees = journees
+        .map(function (j) { return { journee: j, number: parseInt(String(j).match(/\d+/), 10) }; })
+        .filter(function (x) { return !isNaN(x.number); });
+      var defaultJournee = null;
+      if (currentNumber != null) {
+        var eligible = numberedJournees.filter(function (x) { return x.number <= currentNumber; });
+        eligible.sort(function (a, b) { return b.number - a.number; });
+        if (eligible.length) defaultJournee = eligible[0].journee;
+      }
+      if (!defaultJournee) {
+        var highest = numberedJournees.slice().sort(function (a, b) { return b.number - a.number; })[0];
+        defaultJournee = highest ? highest.journee : (journees.length ? journees[0] : null);
+      }
+      if (defaultJournee) {
+        select.value = defaultJournee;
+        loadJournee(defaultJournee);
+      } else {
+        select.appendChild(el('option', { text: 'Aucune journée disponible' }));
+        select.disabled = true;
+        matchList.appendChild(el('div', { class: 'empty-state', text: 'Aucune donnée n’a encore été renseignée.' }));
+      }
+    })
+    .catch(function (err) {
+      select.innerHTML = '';
+      select.appendChild(el('option', { text: 'Erreur de chargement' }));
+      matchList.appendChild(el('div', { class: 'error-state', text: 'Impossible de charger la liste des journées (' + err.message + ').' }));
+    });
 })();
 </script>
 </body>
